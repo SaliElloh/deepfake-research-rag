@@ -1,0 +1,11 @@
+# Deepfake Research RAG
+
+A retrieval-augmented generation (RAG) system that answers questions over a 
+corpus of audio deepfake detection research papers, using local, free tools 
+end-to-end (no API costs).
+
+## Architecture
+PDF corpus → chunk (500 chars, 50 overlap) → embed (all-MiniLM-L6-v2) 
+→ store (ChromaDB) → [query time] → retrieve top-k → prompt → 
+generate (Llama 3.2 3B via Ollama) → answer + citations
+
