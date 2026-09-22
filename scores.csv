@@ -1,0 +1,93 @@
+id,config,score,reason
+A1,base,0,Wrong corpus (claims Common Crawl)
+A2,base,0,Declines or gives generic info
+A3,base,0,Says Maya1 unknown; invents generic codec info
+A4,base,0,Declines or gives generic info
+A5,base,0,Declines or gives generic info
+A6,base,0,Declines or gives generic info
+A7,base,0,Declines or gives generic info
+B1,base,0,Declines or gives generic info
+B2,base,0,Declines or gives generic info
+B3,base,0,Declines or gives generic info
+B4,base,0,Invents what LCNN stands for; generic bands
+C1,base,0,Declines or gives generic info
+C2,base,0,Declines or gives generic info
+C3,base,0,Declines or gives generic info
+C4,base,0,Declines or gives generic info
+D1,base,0,Declines or gives generic info
+D2,base,0,Declines or gives generic info
+D3,base,0,Declines or gives generic info
+D4,base,0,Declines or gives generic info
+D5,base,0,Declines or gives generic info
+D6,base,0,Declines or gives generic info
+U1,base,2,Says it has no information (no invented number)
+U2,base,2,Says it has no specific information
+A1,base+rag,1,"12,000 correct; DailyDialog missing"
+A2,base+rag,2,Correct
+A3,base+rag,1,"SNAC + 7 tokens/3 resolutions right; codec name expanded wrong, no Hz"
+A4,base+rag,2,Correct
+A5,base+rag,2,Correct
+A6,base+rag,1,MesoNet right; misses tiny.en and wrongly says no head mentioned
+A7,base+rag,2,Correct
+B1,base+rag,2,SoX + G.729 correct
+B2,base+rag,0,Says numbers not in context
+B3,base+rag,2,Correct
+B4,base+rag,2,Both parts correct
+C1,base+rag,1,180 correct; 130 included is wrong (27)
+C2,base+rag,1,"Direction right (AI better); no numbers, irrelevant confidence-score text"
+C3,base+rag,2,Correct
+C4,base+rag,0,Says not mentioned
+D1,base+rag,0,Says not in context
+D2,base+rag,0,Says not in context
+D3,base+rag,0,Says not in context
+D4,base+rag,0,Says not in context (retrieval missed paper)
+D5,base+rag,1,20 epochs + batch 32 right; optimizer/lr/loss missing
+D6,base+rag,0,Wrong: says CNN worst
+U1,base+rag,0,Hallucinated 27.10% (that is XLS-R-SLS on MeloTTS)
+U2,base+rag,2,Says not in context
+A1,ft,0,Declines
+A2,ft,0,Declines
+A3,ft,0,Declines
+A4,ft,0,Declines
+A5,ft,0,"Invented reason (multi-domain training, VCTK-Dev)"
+A6,ft,0,Declines
+A7,ft,0,Declines
+B1,ft,0,Declines
+B2,ft,0,Declines
+B3,ft,0,Wrong: says balanced clearly outperformed
+B4,ft,0,Declines
+C1,ft,0,Declines
+C2,ft,0,Declines
+C3,ft,0,Declines
+C4,ft,0,Claims the review does not mention it
+D1,ft,0,Declines
+D2,ft,0,Declines
+D3,ft,0,Declines
+D4,ft,0,Declines
+D5,ft,0,Declines
+D6,ft,0,Declines
+U1,ft,2,Says it could not find the information
+U2,ft,2,Says it has no information
+A1,ft+rag,2,Correct
+A2,ft+rag,2,Correct
+A3,ft+rag,2,"SNAC named correctly, 7 tokens at 3 resolutions; Hz omitted"
+A4,ft+rag,2,Correct
+A5,ft+rag,2,Correct
+A6,ft+rag,1,MesoNet implied; misses tiny.en / MesoInception-4
+A7,ft+rag,2,Correct
+B1,ft+rag,2,SoX + G.729 correct
+B2,ft+rag,1,XGBoost benefited most is right; no numbers
+B3,ft+rag,2,Correct
+B4,ft+rag,1,Low bands right; recommendation missing
+C1,ft+rag,1,180 correct; 130 included is wrong (27)
+C2,ft+rag,0,Hallucinated numbers (96.7% / 83.3%)
+C3,ft+rag,2,Correct
+C4,ft+rag,0,Says not mentioned
+D1,ft+rag,0,Wrong ensemble (describes a different study from lit review)
+D2,ft+rag,0,Says not mentioned
+D3,ft+rag,0,Says split not given
+D4,ft+rag,0,Says not mentioned (retrieval missed paper)
+D5,ft+rag,1,20 epochs + batch 32 right; optimizer/lr/loss missing
+D6,ft+rag,0,Wrong: says CNN worst
+U1,ft+rag,0,Hallucinated 27.10% (that is XLS-R-SLS on MeloTTS)
+U2,ft+rag,2,Says not in context

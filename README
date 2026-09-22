@@ -1,11 +1,100 @@
 # Deepfake Research RAG
 
-A retrieval-augmented generation (RAG) system that answers questions over a 
-corpus of audio deepfake detection research papers, using local, free tools 
-end-to-end (no API costs).
+A question-answering assistant over a small corpus of audio deepfake detection research papers, built entirely with local, free tools (no API costs). The project compares two ways of giving a small model (Llama 3.2 3B) domain knowledge, **retrieval-augmented generation (RAG)** and **LoRA fine-tuning**, and evaluates them on a held-out test set.
 
 ## Architecture
-PDF corpus → chunk (500 chars, 50 overlap) → embed (all-MiniLM-L6-v2) 
-→ store (ChromaDB) → [query time] → retrieve top-k → prompt → 
-generate (Llama 3.2 3B via Ollama) → answer + citations
 
+```
+PDF corpus → chunk (500 chars, 50 overlap) → embed (all-MiniLM-L6-v2)
+→ store (ChromaDB) → [query time] → retrieve top-3 → prompt →
+generate (Llama 3.2 3B via Ollama) → answer + citations
+```
+
+Fine-tuning pipeline:
+
+```
+PDF corpus → 1,200-char passages → Llama 3.2 3B writes one Q&A pair per passage
+→ 230 cleaned pairs → LoRA fine-tune (Unsloth, Colab) → merge + 4-bit GGUF → Ollama
+```
+
+| File | Purpose |
+|---|---|
+| `build_index.py` | Extracts PDF text, chunks, embeds, and stores it in ChromaDB |
+| `query.py` | Retrieves the top-3 chunks and generates a grounded answer with citations |
+| `app.py` | Streamlit UI |
+| `generate_dataset.py` | Generates synthetic Q&A pairs for fine-tuning |
+| `finetune.ipynb` | LoRA fine-tuning in Colab (Unsloth, Alpaca prompt format, 3 epochs) |
+| `Modelfile`, `Modelfile.base` | Ollama models for the fine-tuned and base model, both using the Alpaca template |
+| `eval.py`, `eval_set.jsonl` | Evaluation harness and held-out test set |
+| `eval_results.csv`, `scores.csv` | Model answers and graded scores |
+
+## Setup
+
+Requires Python 3 and [Ollama](https://ollama.com).
+
+```bash
+pip install -r requirements.txt
+ollama pull llama3.2:3b
+
+# Fine-tuned model (~2 GB), hosted on Hugging Face
+curl -L -o llama-3.2-3b-instruct.Q4_K_M.gguf \
+  https://huggingface.co/SaliElloh/deepfake-research-llama3.2-3b-GGUF/resolve/main/llama-3.2-3b-instruct.Q4_K_M.gguf
+ollama create deepfake-ft -f Modelfile
+ollama create base-alpaca -f Modelfile.base
+```
+
+The ChromaDB index is included in the repo. To rebuild it: `python build_index.py`.
+
+## Usage
+
+```bash
+streamlit run app.py          # web UI
+python query.py               # single test question in the terminal
+python eval.py run            # generate evaluation answers
+python eval.py summarize      # print results after scoring
+```
+
+## Evaluation
+
+**Test set.** 23 questions written directly from the four papers: 21 answerable (numbers, facts, and concepts) and 2 that the corpus cannot answer, to test whether the model admits it doesn't know. Every candidate question was checked against the 230 training pairs, and questions whose facts appeared in training were replaced, so the test measures generalization rather than memorization.
+
+**Setups.** Four configurations, all using the same Alpaca prompt format and settings (temperature 0.1, fixed seed), so the only differences are the adapter and retrieval:
+
+- `base`: Llama 3.2 3B, question only
+- `base+rag`: Llama 3.2 3B with the top-3 retrieved chunks
+- `ft`: fine-tuned model, question only
+- `ft+rag`: fine-tuned model with the top-3 retrieved chunks
+
+Both RAG setups receive identical retrieved chunks. Note that the Streamlit app uses plain `llama3.2:3b` in chat format, so `base+rag` is close to the app's behavior but not identical.
+
+**Scoring.** Each answer was graded against a reference answer taken from the paper: 2 = correct, 1 = partly correct, 0 = wrong or made up. For unanswerable questions: 2 = says the information isn't available, 0 = invents an answer.
+
+### Results
+
+| Setup | Score | Fully correct | Honest on unanswerable |
+|---|---|---|---|
+| base | 0.0% | 0/21 | 2/2 |
+| base+rag | 52.4% | 8/21 | 1/2 |
+| ft | 0.0% | 0/21 | 2/2 |
+| ft+rag | 54.8% | 9/21 | 1/2 |
+
+Retrieval hit rate: 20/21 answerable questions retrieved at least one chunk from the correct paper.
+
+### Findings
+
+**RAG did all the work.** Without retrieval, both models declined nearly every question and scored 0%. Fine-tuning on 230 synthetic Q&A pairs did not give the model knowledge it could recall. It shifted the model's vocabulary toward the field, but not its factual accuracy.
+
+**Fine-tuning made no meaningful difference with RAG.** `ft+rag` beat `base+rag` by one question out of 21, which is within noise. Fine-tuning also added some risk: without RAG, the fine-tuned model gave two confident wrong answers where the base model gave none, and with RAG it once made up exact accuracy figures that don't appear in any paper.
+
+**The no-RAG "honesty" scores are not meaningful.** Those models declined everything, so declining the unanswerable questions says nothing about honesty. The RAG setups are the real test, and both failed the same question: asked for a detector's EER that the paper never reports, both answered "27.10%", a real number from the same paper that belongs to a *different* detector. The retrieved chunk mentioned the right dataset and an EER, and the model attached the number to the wrong subject.
+
+**Retrieval is the bottleneck.** Most remaining errors come from the three retrieved chunks not containing the answer, rather than from the model misreading them. The ensemble-learning paper was the weakest: both RAG setups scored close to zero on its questions, and in one case the model answered with a *different* ensemble study described in that paper's related-work section. The 20/21 hit rate overstates retrieval quality, because it only checks that some chunk came from the right paper, not that it contained the answer.
+
+**The synthetic training data contains factual errors.** The Q&A pairs were written by the same 3B model, and several contradict the papers. For example, one says MeloTTS had the highest internal voice consistency when the paper reports it had the lowest, and another says denoising did not improve real-audio recall when the paper reports that it did. Fine-tuning on this data trains those errors into the model.
+
+## Next steps
+
+- Retrieve more context (top-5 instead of top-3) and measure whether the answer-bearing chunk is retrieved, not just the right paper
+- Improve chunking so tables and related-work sections don't crowd out the answer
+- Review synthetic training data for accuracy before fine-tuning, or generate it with a stronger model
+- Test fine-tuning for answer *style* (for example, concise, cited answers) combined with RAG, instead of for factual knowledge

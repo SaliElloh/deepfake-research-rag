@@ -1,0 +1,14 @@
+FROM llama3.2:3b
+
+TEMPLATE """Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+{{ .Prompt }}
+
+### Response:
+"""
+
+PARAMETER temperature 0.1
+PARAMETER stop "<|eot_id|>"
+PARAMETER stop "<|end_of_text|>"
+PARAMETER stop "### Instruction:"
